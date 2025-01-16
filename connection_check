@@ -1,0 +1,32 @@
+# Connect to a list of servers and test each of them if they
+# can connect to another server / server list
+# using nc
+#!/bin/bash
+
+# need all arguments
+if [ "$#" -lt 3 ]; then
+  echo "Need all variables: $0 <servers_source_file> <target_servers_list> <ports>"
+  echo "Ex: $0 \"abcd{11,12,21}z,oqdrd{01,11}q,wwpdt{11,12,21,31,32,51,61,71}q\" \"server1,server2\" \"443,80\""
+  echo "or"
+  echo "Example: $0 \"abcd11z,abcd12z,abcd51z,oqdrd01q,oqdrd11q,wwpdt11q,wwpdt12q,wwpdt21q,wwpdt31q,wwpdt32q,wwpdt51q,wwpdt61q,wwpdt71q\" \"server1,server2\" ports.txt"
+  exit 1
+fi
+
+# input variables
+servers_source_file=$1
+target_servers_list=$2
+ports=$3
+
+# let's loop through each server in the source list
+for server in $(eval echo {$(<"$servers_source_file")}); do
+  # let's loop through each target server
+  for target_server in $(echo $target_servers_list | tr "," "\n"); do
+    # let's loop through each port
+    for port in $(echo $ports | tr "," "\n"); do
+      ssh -o ConnectTimeout=5 "$USER"@"$server" \
+      'nc -z -w5 '$target_server' '$port' && \
+      echo "$(hostname): Connection to '$target_server' on port '$port' - Success" || \
+      echo "$(hostname): Connection to '$target_server' on port '$port' - Failure"' 2>&1 | tee -a results.txt
+    done
+  done
+done
